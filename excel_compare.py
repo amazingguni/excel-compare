@@ -22,16 +22,22 @@ class ExcelCompare:
         print('1. load excel sheet start')
         print('  ', str(self.excel_meta_a))
         print('  ', str(self.excel_meta_b))
+        print()
         self.load_excel_sheet()
 
         print('2. find intersection id start')
         intersection_id_set = self.find_intersection_id()
         print('  intersection id count - ', len(intersection_id_set))
         print('  ', intersection_id_set)
+        print()
 
         print('3. export excel - ', self.export_file_path)
-        self.export_excel(intersection_id_set)
+        total_row = self.export_excel(intersection_id_set)
+        print('  total row for intersaction id: ', total_row)
+        print()
         print('4. finish >_<!!!!!!!')
+        print('-' * 40)
+        print()
 
 
     def load_excel_sheet(self):
@@ -89,5 +95,6 @@ class ExcelCompare:
                 current_col_index += 1
             current_row += 1
 
-        print('total row for intersaction id: ', current_row)
+
         workbook.close()
+        return current_row
