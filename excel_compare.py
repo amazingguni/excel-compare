@@ -19,6 +19,7 @@ class ExcelCompare:
         self.export_sheet_name = export_sheet_name
 
     def analyze(self):
+        print('-' * 40)
         print('1. load excel sheet start')
         print('  ', str(self.excel_meta_a))
         print('  ', str(self.excel_meta_b))
@@ -26,18 +27,18 @@ class ExcelCompare:
         self.load_excel_sheet()
 
         print('2. find intersection id start')
-        intersection_id_set = self.find_intersection_id()
+        intersection_id_set, id_dic_a, id_dic_b \
+            = self.find_intersection_id()
         print('  intersection id count - ', len(intersection_id_set))
         print('  ', intersection_id_set)
         print()
 
         print('3. export excel - ', self.export_file_path)
-        total_row = self.export_excel(intersection_id_set)
+        total_row = self.export_excel(intersection_id_set, id_dic_a, id_dic_b)
         print('  total row for intersaction id: ', total_row)
         print()
         print('4. finish >_<!!!!!!!')
         print('-' * 40)
-        print()
 
 
     def load_excel_sheet(self):
@@ -48,19 +49,34 @@ class ExcelCompare:
         self.sheet_b = book.sheet_by_name(self.excel_meta_b.worksheet)
 
     def find_intersection_id(self):
+        id_dic_a = {}
         set_a_id = set()
 
         for i in range(1, self.sheet_a.nrows):
-            set_a_id.add(self.sheet_a.cell_value(rowx=i, colx=1))
-
+            count_learning = self.sheet_a.cell_value(rowx=i, colx=self.sheet_a.ncols - 1)
+            if str(count_learning) == '0':
+                continue
+            id = self.sheet_a.cell_value(rowx=i, colx=1)
+            set_a_id.add(id)
+            if id not in id_dic_a:
+                id_dic_a[id] = 0
+            id_dic_a[id] += 1
+        id_dic_b = {}
         set_b_id = set()
 
         for i in range(1, self.sheet_b.nrows):
-            set_b_id.add(self.sheet_b.cell_value(rowx=i, colx=1))
+            count_learning = self.sheet_b.cell_value(rowx=i, colx=self.sheet_b.ncols - 1)
+            if str(count_learning) == '0':
+                continue
+            id = self.sheet_b.cell_value(rowx=i, colx=1)
+            set_b_id.add(id)
+            if id not in id_dic_b:
+                id_dic_b[id] = 0
+            id_dic_b[id] += 1
 
-        return set_a_id & set_b_id
+        return (set_a_id & set_b_id), id_dic_a, id_dic_b
 
-    def export_excel(self, intersection_id_set):
+    def export_excel(self, intersection_id_set, id_dic_a, id_dic_b):
         if os.path.exists(self.export_file_path):
             os.remove(self.export_file_path)
         workbook = xlsxwriter.Workbook(self.export_file_path)
@@ -74,6 +90,9 @@ class ExcelCompare:
         for i in range(1, self.sheet_a.nrows):
             if self.sheet_a.cell_value(rowx=i, colx=1) not in intersection_id_set:
                 continue
+            count_learning = self.sheet_a.cell_value(rowx=i, colx=self.sheet_a.ncols - 1)
+            if str(count_learning) == '0':
+                continue
             current_col_index = 0
             for j in range(self.sheet_a.ncols):
                 if j in self.excel_meta_a.ignore_list:
@@ -86,6 +105,9 @@ class ExcelCompare:
         for i in range(1, self.sheet_b.nrows):
             if self.sheet_b.cell_value(rowx=i, colx=1) not in intersection_id_set:
                 continue
+            count_learning = self.sheet_b.cell_value(rowx=i, colx=self.sheet_b.ncols - 1)
+            if str(count_learning) == '0':
+                continue
             current_col_index = 0
             for j in range(self.sheet_b.ncols):
                 if j in self.excel_meta_b.ignore_list:
@@ -95,6 +117,21 @@ class ExcelCompare:
                 current_col_index += 1
             current_row += 1
 
+        worksheet_id_dic_a = workbook.add_worksheet(self.excel_meta_a.worksheet)
+
+        index = 0
+        for key, value in id_dic_a.items():
+            worksheet_id_dic_a.write(index, 0, key)
+            worksheet_id_dic_a.write(index, 1, value)
+            index += 1
+
+        worksheet_id_dic_b = workbook.add_worksheet(self.excel_meta_b.worksheet)
+
+        index = 0
+        for key, value in id_dic_b.items():
+            worksheet_id_dic_b.write(index, 0, key)
+            worksheet_id_dic_b.write(index, 1, value)
+            index += 1
 
         workbook.close()
         return current_row
